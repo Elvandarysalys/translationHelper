@@ -43,20 +43,20 @@ class CheckTranslationsCommand extends Command
         $finder = new Finder();
         $finder->files()->in($this->translatorFolder);
 
-        $results      = [];
-        $totalUnits   = 0;
+        $results = [];
+        $totalUnits = 0;
         $invalidUnits = 0;
         if ($finder->hasResults()) {
             $io->writeln($finder->count() . ' result founds');
             $io->newLine();
 
-            $encoders   = [new XmlEncoder()];
+            $encoders = [new XmlEncoder()];
             $serializer = new Serializer([], $encoders);
 
             foreach ($finder as $file) {
                 $fileData = $serializer->decode($file->getContents(), 'xml');
 
-                $units     = $fileData['file']['body']['trans-unit'];
+                $units = $fileData['file']['body']['trans-unit'];
                 $unitCount = count($units);
 
                 $totalUnits += $unitCount;
@@ -76,8 +76,8 @@ class CheckTranslationsCommand extends Command
                 if ($displayFullResults) {
                     $results[$file->getFilenameWithoutExtension()] = [
                         'percentCompletion' => round((($unitCount - $fileInvalid) / $unitCount) * 100, 2),
-                        'invalid'           => $fileInvalid,
-                        'total'             => $unitCount
+                        'invalid' => $fileInvalid,
+                        'total' => $unitCount
                     ];
                 }
 
@@ -85,11 +85,11 @@ class CheckTranslationsCommand extends Command
             }
         }
 
-        $validUnits        = $totalUnits - $invalidUnits;
+        $validUnits = $totalUnits - $invalidUnits;
         $completionPercent = round(($validUnits / $totalUnits) * 100, 2);
 
         $io->newLine();
-        if ($displayFullResults){
+        if ($displayFullResults) {
             $io->writeln("<comment>$totalUnits</comment> analysed, <info>$validUnits</info> valid units, <fire>$invalidUnits</fire> invalid units");
         }
         $io->writeln("translation completed at $completionPercent%.");
@@ -99,8 +99,8 @@ class CheckTranslationsCommand extends Command
             foreach ($results as $fileName => $fileResult) {
 //                $io->writeln('<info>' . $fileName . '</info>');
                 $io->section($fileName);
-                $valid   = $fileResult['total'] - $fileResult['invalid'];
-                $total   = $fileResult['total'];
+                $valid = $fileResult['total'] - $fileResult['invalid'];
+                $total = $fileResult['total'];
                 $invalid = $fileResult['invalid'];
                 $completion = $fileResult['percentCompletion'];
 

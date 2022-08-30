@@ -18,7 +18,7 @@ class TranslationHelperExtension extends Extension
         $configuration = new Configuration();
         $this->processConfiguration($configuration, $configs);
 
-        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.php');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Elvandar\TranslationHelper;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
