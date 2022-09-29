@@ -2,6 +2,8 @@
 
 namespace Elvandar\TranslationHelper\Command;
 
+use Exception;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputInterface;
@@ -11,10 +13,10 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Serializer\Encoder\XmlEncoder;
 use Symfony\Component\Serializer\Serializer;
 
-//#[AsCommand(
-//    name: 'check:translations',
-//    description: 'Analyse your translation folder and give you informations about translation progress',
-//)]
+#[AsCommand(
+    name: 'check:translations',
+    description: 'Analyse your translation folder and give you informations about translation progress',
+)]
 class CheckTranslationsCommand extends Command
 {
     protected static $defaultName = 'check:translations';
@@ -28,6 +30,9 @@ class CheckTranslationsCommand extends Command
         $this->translatorFolder = $translatorFolder;
     }
 
+    /**
+     * @throws Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -54,39 +59,61 @@ class CheckTranslationsCommand extends Command
             $serializer = new Serializer([], $encoders);
 
             foreach ($finder as $file) {
-                $fileData = $serializer->decode($file->getContents(), 'xml');
+                if ($file->getExtension() !== 'xml' && $file->getExtension() !== 'xliff') {
+                    $io->writeln($file->getPathname() . ' is not an xml or an xliff');
+                } else {
+                    $fileData = $serializer->decode($file->getContents(), 'xml');
 
-                $units = $fileData['file']['body']['trans-unit'];
-                $unitCount = count($units);
+                    $units = $fileData['file']['body']['trans-unit'];
+                    // todo check for single trans unit case (wrong array depth)
+                    $unitCount = count($units);
 
-                $totalUnits += $unitCount;
+                    $totalUnits += $unitCount;
 
-                $fileInvalid = 0;
-                foreach ($io->progressIterate($units) as $transUnit) {
-                    if (array_key_exists('source', $transUnit)) {
-                        $theoricalUntranslated = '__' . $transUnit['source'];
+                    $fileInvalid = 0;
+                    foreach ($io->progressIterate($units) as $transUnit) {
+                        if (!is_array($transUnit)){
+                            dd($transUnit);
+                        }
+                        // standard symfony case
+                        if (array_key_exists('source', $transUnit)) {
+                            $source = $transUnit['source'];
+                            $target = $transUnit['target'];
 
-                        if ($theoricalUntranslated === $transUnit['target']) {
-                            $invalidUnits++;
-                            $fileInvalid++;
+                            $theoricalUntranslated = '__' . $source;
+
+                            if ($theoricalUntranslated === $target) {
+                                $invalidUnits++;
+                                $fileInvalid++;
+                            } else {
+                                // todo improve this regex
+                                // for the case when there is no __ at the start of the default translation string
+                                if ($source === $target && preg_match('/[_\.][^\ ]/', $target)) {
+                                    $invalidUnits++;
+                                    $fileInvalid++;
+                                }
+                            }
                         }
                     }
-                }
 
-                if ($displayFullResults) {
-                    $results[$file->getFilenameWithoutExtension()] = [
-                        'percentCompletion' => round((($unitCount - $fileInvalid) / $unitCount) * 100, 2),
-                        'invalid' => $fileInvalid,
-                        'total' => $unitCount
-                    ];
+                    if ($displayFullResults) {
+                        $results[$file->getFilenameWithoutExtension()] = [
+                            'percentCompletion' => round((($unitCount - $fileInvalid) / $unitCount) * 100, 2),
+                            'invalid' => $fileInvalid,
+                            'total' => $unitCount
+                        ];
+                    }
                 }
-
                 $io->newLine();
             }
         }
 
         $validUnits = $totalUnits - $invalidUnits;
-        $completionPercent = round(($validUnits / $totalUnits) * 100, 2);
+        if ($totalUnits === 0) {
+            $completionPercent = 0;
+        } else {
+            $completionPercent = round(($validUnits / $totalUnits) * 100, 2);
+        }
 
         $io->newLine();
         if ($displayFullResults) {
