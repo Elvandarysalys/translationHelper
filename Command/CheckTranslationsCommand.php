@@ -19,9 +19,6 @@ use Symfony\Component\Serializer\Serializer;
 )]
 class CheckTranslationsCommand extends Command
 {
-    protected static $defaultName = 'check:translations';
-    protected static $defaultDescription = 'Analyse your translation folder and give you informations about translation progress';
-
     protected string $translatorFolder;
 
     public function __construct(string $translatorFolder)
